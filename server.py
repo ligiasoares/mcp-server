@@ -12,10 +12,11 @@ API_BASE = "https://api.mytontine.com"
 TONTINATOR_ENDPOINT = f"{API_BASE}/v2/payout_forecast/tontinator"
 
 INVESTMENT_TYPE_DESCRIPTIONS = {
-    "BOL": "Bonds / fixed-income (lower risk, steadier returns)",
-    "FII": "Real Estate Investment Funds (medium risk, inflation-linked)",
-    "VBI": "Variable income / equities (higher risk, higher potential return)",
-    "BTC": "Bitcoin / crypto (very high risk, very high potential return)",
+    "XAU5Y": "Tontine Trust Gold Extra — gold investment using the past 5-year gold CAGR. More aggressive payout distribution early on, but if real gold CAGR falls short, late-life payouts may be lower.",
+    "XAU10Y": "Tontine Trust Gold Standard — gold investment using the past 10-year gold CAGR. Balanced payout distribution assuming normal growth.",
+    "XAU20Y": "Tontine Trust Gold Reserved — gold investment using the past 20-year gold CAGR (conservative). Lower initial distributions, but if actual CAGR exceeds expectations, late-life payouts grow larger.",
+    "BTC": "Bitcoin — very high risk, very high potential return.",
+    "BOL": "Bold — portfolio allocated 65% gold and 35% Bitcoin (balanced between gold stability and BTC upside).",
 }
 
 app = Server("tontine-mcp")
@@ -79,13 +80,14 @@ async def list_tools() -> list[types.Tool]:
                     },
                     "investment_type": {
                         "type": "string",
-                        "enum": ["BOL", "FII", "VBI", "BTC"],
+                        "enum": ["XAU5Y", "XAU10Y", "XAU20Y", "BTC", "BOL"],
                         "description": (
                             "Investment allocation strategy: "
-                            "BOL=Bonds, FII=Real Estate Funds, VBI=Variable/Equities, BTC=Bitcoin. "
+                            "XAU5Y=Gold Extra (aggressive), XAU10Y=Gold Standard (balanced), "
+                            "XAU20Y=Gold Reserved (conservative), BTC=Bitcoin, BOL=Bold (65% gold + 35% BTC). "
                             "Affects how contributions grow before payout starts."
                         ),
-                        "default": "BOL",
+                        "default": "XAU10Y",
                     },
                 },
                 "required": ["current_age_years", "country", "payout_age_years", "onetime_amount"],
@@ -122,7 +124,7 @@ async def list_tools() -> list[types.Tool]:
                                 "payout_age_months": {"type": "integer", "default": 0},
                                 "investment_type": {
                                     "type": "string",
-                                    "enum": ["BOL", "FII", "VBI", "BTC"],
+                                    "enum": ["XAU5Y", "XAU10Y", "XAU20Y", "BTC", "BOL"],
                                     "default": "BOL",
                                 },
                             },
@@ -170,7 +172,7 @@ def build_payload(
                 "month": payout_age_months or 0,
             },
         },
-        "contribution_allocations": investment_type or "BOL",
+        "contribution_allocations": investment_type or "XAU10Y",
         "write_draft_plan": False,
     }
     if sex:
@@ -340,7 +342,7 @@ async def call_tool(name: str, arguments: dict) -> list[types.TextContent]:
                 monthly_amount=arguments.get("monthly_amount"),
                 payout_age_years=arguments["payout_age_years"],
                 payout_age_months=arguments.get("payout_age_months", 0),
-                investment_type=arguments.get("investment_type", "BOL"),
+                investment_type=arguments.get("investment_type", "XAU10Y"),
             )
             result = await call_tontinator(payload, client)
             if isinstance(result, str):
@@ -348,7 +350,7 @@ async def call_tool(name: str, arguments: dict) -> list[types.TextContent]:
 
             text = format_single_result(
                 result,
-                investment_type=arguments.get("investment_type", "BOL"),
+                investment_type=arguments.get("investment_type", "XAU10Y"),
             )
             return [types.TextContent(type="text", text=text)]
 
