@@ -82,13 +82,16 @@ async def list_tools() -> list[types.Tool]:
         types.Tool(
             name="calculate_tontine_payout",
             description=(
-                "Calculate lifetime income projections using the Tontinator. "
-                "Returns monthly payout amounts for a tontine structure vs an annuity, "
+                "Calculate illustrative lifetime income projections using the Tontinator. "
+                "Returns projected monthly payout figures for a tontine structure vs an annuity "
                 "at key age milestones. "
                 "The tontine payout grows over time due to mortality credits — "
                 "when pool members die, their balance is redistributed to survivors, "
-                "increasing everyone's payout. Use this to give users real numbers "
-                "instead of generic estimates. "
+                "increasing everyone's payout. "
+                "IMPORTANT: present results as approximate projections or indicative ranges, "
+                "NOT as exact guaranteed amounts. Actual payouts will vary based on real asset "
+                "performance and actual member mortality. Use language like 'approximately', "
+                "'in the range of', 'projected to be around', or 'illustrative figure of'. "
                 "If the user is unfamiliar with tontines, call get_tontine_info first."
             ),
             inputSchema={
@@ -150,7 +153,9 @@ async def list_tools() -> list[types.Tool]:
                 "Compare two or more tontine scenarios side-by-side. "
                 "Useful for questions like 'what if I retire at 70 vs 80?' or "
                 "'what if I contribute $300k vs $500k?' or comparing asset types. "
-                "Each scenario is a separate calculation request."
+                "Each scenario is a separate calculation request. "
+                "IMPORTANT: present all figures as approximate projections, not guaranteed amounts. "
+                "Use language like 'approximately', 'projected around', or 'in the range of'."
             ),
             inputSchema={
                 "type": "object",
@@ -300,12 +305,18 @@ def format_single_result(results: dict, asset_type: str, label: str = "") -> str
     inv_label = inv_meta.get("label", asset_type) if isinstance(inv_meta, dict) else asset_type
 
     header = f"{'=' * 56}\n"
+    header += (
+        "NOTE: These are illustrative projections based on current actuarial\n"
+        "assumptions and historical asset performance. Present to the user as\n"
+        "approximate figures — actual payouts will vary.\n"
+        f"{'=' * 56}\n"
+    )
     if label:
         header += f"Scenario: {label}\n"
     header += (
         f"Asset type       : {asset_type} — {inv_label}\n"
         f"Total contributed: {fmt_currency(total_contributions, currency)}\n"
-        f"Inflation rate  : {annual_inflation * 100:.1f}% per year\n"
+        f"Inflation rate   : {annual_inflation * 100:.1f}% per year\n"
         f"Payouts start at age {payout_age_years}\n"
         f"{'=' * 56}\n"
     )
