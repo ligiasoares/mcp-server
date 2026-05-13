@@ -9,7 +9,7 @@ from mcp.server import Server
 from mcp.server.stdio import stdio_server
 from mcp import types
 
-from context_data import INVESTMENT_TYPE_DESCRIPTIONS, RESOURCES, TOOLS_METADATA
+from context_data import ASSET_TYPE_DESCRIPTIONS, RESOURCES, TOOLS_METADATA
 
 API_BASE = "https://api.mytontine.com"
 TONTINATOR_ENDPOINT = f"{API_BASE}/v2/payout_forecast/tontinator"
@@ -53,10 +53,10 @@ async def list_tools() -> list[types.Tool]:
             name="get_tontine_info",
             description=(
                 "Get background information about Tontine Trust: what it is, how it compares to annuities, "
-                "how mortality credits work, the available investment/distribution profiles, and how "
+                "how mortality credits work, the available asset/distribution profiles, and how "
                 "member assets are protected. Call this when the user asks general questions like "
                 "'what is a tontine?', 'how does it work?', 'is it safe?', 'is it better than an annuity?', "
-                "or 'what investment options are there?'. "
+                "or 'what asset types are available?'. "
                 "Also lists available educational resources for deeper reading."
             ),
             inputSchema={
@@ -70,7 +70,7 @@ async def list_tools() -> list[types.Tool]:
                             "'overview' = what is Tontine Trust and how it works, "
                             "'vs_annuity' = tontine vs annuity comparison, "
                             "'mortality_credits' = how payouts grow over time, "
-                            "'distribution_profiles' = the investment profiles (Gold Extra/Standard/Reserve, BTC, Bold), "
+                            "'distribution_profiles' = the asset profiles (Gold Extra/Standard/Reserve, BTC, Bold), "
                             "'trust_security' = how assets are held and protected, "
                             "'all' = everything at once."
                         ),
@@ -129,11 +129,11 @@ async def list_tools() -> list[types.Tool]:
                         "description": "Additional months for payout start age (default 0)",
                         "default": 0,
                     },
-                    "investment_type": {
+                    "asset_type": {
                         "type": "string",
                         "enum": ["XAU5Y", "XAU10Y", "XAU20Y", "BTC", "BOL"],
                         "description": (
-                            "Investment allocation strategy: "
+                            "Asset allocation strategy: "
                             "XAU5Y=Gold Extra (aggressive), XAU10Y=Gold Standard (balanced), "
                             "XAU20Y=Gold Reserved (conservative), BTC=Bitcoin, BOL=Bold (65% gold + 35% BTC). "
                             "Affects how contributions grow before payout starts."
@@ -149,7 +149,7 @@ async def list_tools() -> list[types.Tool]:
             description=(
                 "Compare two or more tontine scenarios side-by-side. "
                 "Useful for questions like 'what if I retire at 70 vs 80?' or "
-                "'what if I invest $300k vs $500k?' or comparing investment types. "
+                "'what if I contribute $300k vs $500k?' or comparing asset types. "
                 "Each scenario is a separate calculation request."
             ),
             inputSchema={
@@ -173,7 +173,7 @@ async def list_tools() -> list[types.Tool]:
                                 "monthly_amount": {"type": "number"},
                                 "payout_age_years": {"type": "integer"},
                                 "payout_age_months": {"type": "integer", "default": 0},
-                                "investment_type": {
+                                "asset_type": {
                                     "type": "string",
                                     "enum": ["XAU5Y", "XAU10Y", "XAU20Y", "BTC", "BOL"],
                                     "default": "XAU10Y",
@@ -189,8 +189,8 @@ async def list_tools() -> list[types.Tool]:
             },
         ),
         types.Tool(
-            name="get_investment_types",
-            description="List available investment allocation types with descriptions. Call this if the user asks about investment options or before recommending an investment type.",
+            name="get_asset_types",
+            description="List available asset allocation types with descriptions. Call this if the user asks about asset options or before recommending an asset type.",
             inputSchema={"type": "object", "properties": {}},
         ),
     ]
@@ -209,7 +209,7 @@ def build_payload(
     monthly_amount: float | None,
     payout_age_years: int,
     payout_age_months: int,
-    investment_type: str,
+    asset_type: str,
 ) -> dict:
     payload: dict = {
         "demographic_data_country_of_residence": country.upper(),
@@ -223,7 +223,7 @@ def build_payload(
                 "month": payout_age_months or 0,
             },
         },
-        "contribution_allocations": investment_type or "XAU10Y",
+        "contribution_allocations": asset_type or "XAU10Y",
         "write_draft_plan": False,
     }
     if sex:
@@ -284,7 +284,7 @@ def fmt_currency(amount: float | None, currency: str = "USD") -> str:
     return f"{symbol}{amount:,.0f}"
 
 
-def format_single_result(results: dict, investment_type: str, label: str = "") -> str:
+def format_single_result(results: dict, asset_type: str, label: str = "") -> str:
     payouts: list[dict] = results.get("payouts", [])
     currency: str = results.get("currency", "USD")
     total_contributions: float = results.get("_total_contributions", 0)
@@ -296,15 +296,15 @@ def format_single_result(results: dict, investment_type: str, label: str = "") -
     payout_age_years = payouts[0]["age"]["years"]
     milestones = extract_milestones(payouts, payout_age_years)
 
-    inv_meta = INVESTMENT_TYPE_DESCRIPTIONS.get(investment_type, {})
-    inv_label = inv_meta.get("label", investment_type) if isinstance(inv_meta, dict) else investment_type
+    inv_meta = ASSET_TYPE_DESCRIPTIONS.get(asset_type, {})
+    inv_label = inv_meta.get("label", asset_type) if isinstance(inv_meta, dict) else asset_type
 
     header = f"{'=' * 56}\n"
     if label:
         header += f"Scenario: {label}\n"
     header += (
-        f"Investment type : {investment_type} — {inv_label}\n"
-        f"Total invested  : {fmt_currency(total_contributions, currency)}\n"
+        f"Asset type       : {asset_type} — {inv_label}\n"
+        f"Total contributed: {fmt_currency(total_contributions, currency)}\n"
         f"Inflation rate  : {annual_inflation * 100:.1f}% per year\n"
         f"Payouts start at age {payout_age_years}\n"
         f"{'=' * 56}\n"
@@ -353,8 +353,8 @@ def format_single_result(results: dict, investment_type: str, label: str = "") -
 
 def format_comparison(results_list: list[tuple[str, dict, str]]) -> str:
     parts = []
-    for label, results, investment_type in results_list:
-        parts.append(format_single_result(results, investment_type, label=label))
+    for label, results, asset_type in results_list:
+        parts.append(format_single_result(results, asset_type, label=label))
     return "\n\n".join(parts)
 
 
@@ -386,12 +386,12 @@ async def call_tool(name: str, arguments: dict) -> list[types.TextContent]:
             )
             return [types.TextContent(type="text", text="\n\n".join(parts))]
 
-        if name == "get_investment_types":
-            lines = ["Available investment allocation types:\n"]
-            for code, meta in INVESTMENT_TYPE_DESCRIPTIONS.items():
+        if name == "get_asset_types":
+            lines = ["Available asset allocation types:\n"]
+            for code, meta in ASSET_TYPE_DESCRIPTIONS.items():
                 lines.append(f"  {code} — {meta['label']} ({meta['risk']}): {meta['description']}")
             lines.append(
-                "\nNote: investment type affects how contributions grow during the "
+                "\nNote: asset type affects how contributions grow during the "
                 "accumulation phase (before payouts start). It does not affect the "
                 "tontine mechanism (mortality credits) itself."
             )
@@ -407,12 +407,12 @@ async def call_tool(name: str, arguments: dict) -> list[types.TextContent]:
                 monthly_amount=arguments.get("monthly_amount"),
                 payout_age_years=arguments["payout_age_years"],
                 payout_age_months=arguments.get("payout_age_months", 0),
-                investment_type=arguments.get("investment_type", "XAU10Y"),
+                asset_type=arguments.get("asset_type", "XAU10Y"),
             )
             result = await call_tontinator(payload, client)
             if isinstance(result, str):
                 return [types.TextContent(type="text", text=result)]
-            text = format_single_result(result, investment_type=arguments.get("investment_type", "XAU10Y"))
+            text = format_single_result(result, asset_type=arguments.get("asset_type", "XAU10Y"))
             return [types.TextContent(type="text", text=text)]
 
         if name == "compare_tontine_scenarios":
@@ -428,7 +428,7 @@ async def call_tool(name: str, arguments: dict) -> list[types.TextContent]:
                         monthly_amount=sc.get("monthly_amount"),
                         payout_age_years=sc["payout_age_years"],
                         payout_age_months=sc.get("payout_age_months", 0),
-                        investment_type=sc.get("investment_type", "XAU10Y"),
+                        asset_type=sc.get("asset_type", "XAU10Y"),
                     ),
                     client,
                 )
@@ -439,7 +439,7 @@ async def call_tool(name: str, arguments: dict) -> list[types.TextContent]:
             results_list = []
             for sc, raw in zip(scenarios, raw_results):
                 label = sc.get("label", f"Age {sc['current_age_years']}, ${sc.get('onetime_amount', 0):,.0f}")
-                inv = sc.get("investment_type", "XAU10Y")
+                inv = sc.get("asset_type", "XAU10Y")
                 results_list.append((label, {"error": raw} if isinstance(raw, str) else raw, inv))
 
             return [types.TextContent(type="text", text=format_comparison(results_list))]
@@ -461,7 +461,7 @@ def build_dashboard_html() -> str:
     }
 
     inv_cards = ""
-    for code, meta in INVESTMENT_TYPE_DESCRIPTIONS.items():
+    for code, meta in ASSET_TYPE_DESCRIPTIONS.items():
         badge_color = risk_badge_color.get(meta["risk"], "#555")
         inv_cards += f"""
         <div class="card">
@@ -503,7 +503,7 @@ def build_dashboard_html() -> str:
 
     n_tools = len(TOOLS_METADATA)
     n_resources = len(RESOURCES)
-    n_inv = len(INVESTMENT_TYPE_DESCRIPTIONS)
+    n_inv = len(ASSET_TYPE_DESCRIPTIONS)
 
     return f"""<!DOCTYPE html>
 <html lang="en">
@@ -514,32 +514,34 @@ def build_dashboard_html() -> str:
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <style>
   :root {{
-    --gold: #C9A84C;
-    --gold-light: #e8c96a;
-    --bg: #0d0d0d;
-    --surface: #161616;
-    --surface2: #1f1f1f;
-    --border: #2c2c2c;
-    --text: #e4e4e4;
-    --muted: #888;
+    --blue: #1a6fc4;
+    --blue-dark: #154f8e;
+    --blue-light: #e8f1fb;
+    --blue-mid: #d0e4f7;
+    --bg: #f5f7fa;
+    --surface: #ffffff;
+    --surface2: #f0f4f9;
+    --border: #d8e3ef;
+    --text: #1a2332;
+    --muted: #5a6e85;
     --radius: 8px;
   }}
   * {{ box-sizing: border-box; margin: 0; padding: 0; }}
   body {{ background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-size: 15px; line-height: 1.65; }}
 
   header {{
-    background: var(--surface);
-    border-bottom: 1px solid var(--border);
-    padding: 24px 40px;
+    background: var(--blue);
+    padding: 20px 40px;
     display: flex;
     align-items: center;
     gap: 16px;
+    box-shadow: 0 2px 8px rgba(26,111,196,0.18);
   }}
-  .logo {{ font-size: 26px; font-weight: 700; color: var(--gold); letter-spacing: -0.5px; }}
-  .logo span {{ color: var(--text); font-weight: 300; }}
+  .logo {{ font-size: 24px; font-weight: 700; color: #fff; letter-spacing: -0.3px; }}
+  .logo span {{ font-weight: 300; opacity: 0.85; }}
   .tag {{
-    background: var(--gold);
-    color: #000;
+    background: #fff;
+    color: var(--blue);
     font-size: 11px;
     font-weight: 700;
     letter-spacing: 1px;
@@ -547,13 +549,14 @@ def build_dashboard_html() -> str:
     padding: 3px 9px;
     border-radius: 4px;
   }}
-  .subtitle {{ color: var(--muted); font-size: 13px; margin-left: auto; }}
+  .subtitle {{ color: rgba(255,255,255,0.7); font-size: 13px; margin-left: auto; }}
 
   nav.sections {{
     background: var(--surface);
     border-bottom: 1px solid var(--border);
     padding: 0 40px;
     display: flex;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
   }}
   nav.sections a {{
     color: var(--muted);
@@ -564,7 +567,7 @@ def build_dashboard_html() -> str:
     border-bottom: 2px solid transparent;
     transition: color 0.15s, border-color 0.15s;
   }}
-  nav.sections a:hover {{ color: var(--gold); border-color: var(--gold); }}
+  nav.sections a:hover {{ color: var(--blue); border-color: var(--blue); }}
 
   main {{ max-width: 1100px; margin: 0 auto; padding: 40px; }}
 
@@ -572,8 +575,8 @@ def build_dashboard_html() -> str:
   section h2 {{
     font-size: 18px;
     font-weight: 600;
-    color: var(--gold);
-    border-bottom: 1px solid var(--border);
+    color: var(--blue);
+    border-bottom: 2px solid var(--blue-mid);
     padding-bottom: 10px;
     margin-bottom: 24px;
   }}
@@ -581,7 +584,7 @@ def build_dashboard_html() -> str:
   .intro-box {{
     background: var(--surface);
     border: 1px solid var(--border);
-    border-left: 3px solid var(--gold);
+    border-left: 4px solid var(--blue);
     border-radius: var(--radius);
     padding: 20px 24px;
     margin-bottom: 32px;
@@ -597,6 +600,7 @@ def build_dashboard_html() -> str:
     border-radius: var(--radius);
     padding: 18px 22px;
     margin-bottom: 14px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
   }}
   .card-header {{
     display: flex;
@@ -606,13 +610,14 @@ def build_dashboard_html() -> str:
     flex-wrap: wrap;
   }}
   .code-badge {{
-    background: #1a1a2e;
-    color: var(--gold-light);
+    background: var(--blue-light);
+    color: var(--blue-dark);
     font-family: "SF Mono", "Fira Code", monospace;
     font-size: 13px;
     padding: 2px 10px;
     border-radius: 4px;
-    border: 1px solid #2a2a4a;
+    border: 1px solid var(--blue-mid);
+    font-weight: 600;
   }}
   .label {{ font-weight: 600; font-size: 15px; color: var(--text); }}
   .risk-badge {{
@@ -625,11 +630,11 @@ def build_dashboard_html() -> str:
   }}
   .card p {{ color: var(--muted); font-size: 14px; line-height: 1.65; }}
   .params-line {{ margin-top: 10px; font-size: 13px; color: var(--muted); }}
-  .params-label {{ color: var(--gold); font-weight: 600; }}
+  .params-label {{ color: var(--blue); font-weight: 600; }}
 
   .tab-bar {{ display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 20px; }}
   .tab-btn {{
-    background: var(--surface2);
+    background: var(--surface);
     border: 1px solid var(--border);
     color: var(--muted);
     padding: 7px 15px;
@@ -639,14 +644,15 @@ def build_dashboard_html() -> str:
     font-weight: 500;
     transition: all 0.15s;
   }}
-  .tab-btn:hover {{ border-color: var(--gold); color: var(--gold); }}
-  .tab-btn.active {{ background: var(--gold); color: #000; border-color: var(--gold); font-weight: 700; }}
+  .tab-btn:hover {{ border-color: var(--blue); color: var(--blue); background: var(--blue-light); }}
+  .tab-btn.active {{ background: var(--blue); color: #fff; border-color: var(--blue); font-weight: 600; }}
 
   .tab-panel {{
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--radius);
     padding: 28px 32px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
   }}
   .resource-uri {{
     font-family: monospace;
@@ -657,20 +663,22 @@ def build_dashboard_html() -> str:
     padding: 4px 10px;
     border-radius: 4px;
     display: inline-block;
+    border: 1px solid var(--border);
   }}
 
-  .markdown-body h1 {{ font-size: 22px; color: var(--gold); margin: 0 0 16px; font-weight: 700; }}
+  .markdown-body h1 {{ font-size: 22px; color: var(--blue); margin: 0 0 16px; font-weight: 700; }}
   .markdown-body h2 {{ font-size: 17px; color: var(--text); margin: 24px 0 10px; font-weight: 600; border-bottom: 1px solid var(--border); padding-bottom: 6px; }}
-  .markdown-body h3 {{ font-size: 15px; color: var(--gold-light); margin: 18px 0 8px; font-weight: 600; }}
+  .markdown-body h3 {{ font-size: 15px; color: var(--blue-dark); margin: 18px 0 8px; font-weight: 600; }}
   .markdown-body p {{ margin-bottom: 12px; color: var(--muted); font-size: 14px; line-height: 1.7; }}
   .markdown-body strong {{ color: var(--text); }}
-  .markdown-body em {{ color: var(--gold-light); font-style: italic; }}
+  .markdown-body em {{ color: var(--blue); font-style: italic; }}
   .markdown-body ul, .markdown-body ol {{ margin: 8px 0 14px 22px; color: var(--muted); font-size: 14px; }}
   .markdown-body li {{ margin-bottom: 5px; line-height: 1.6; }}
-  .markdown-body code {{ background: var(--surface2); color: var(--gold-light); font-family: monospace; font-size: 12px; padding: 1px 6px; border-radius: 3px; }}
+  .markdown-body code {{ background: var(--blue-light); color: var(--blue-dark); font-family: monospace; font-size: 12px; padding: 1px 6px; border-radius: 3px; }}
   .markdown-body table {{ width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 13px; }}
-  .markdown-body th {{ background: var(--surface2); color: var(--gold); text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--border); font-weight: 600; }}
-  .markdown-body td {{ padding: 9px 14px; border-bottom: 1px solid var(--border); color: var(--muted); vertical-align: top; }}
+  .markdown-body th {{ background: var(--blue); color: #fff; text-align: left; padding: 10px 14px; font-weight: 600; }}
+  .markdown-body td {{ padding: 9px 14px; border-bottom: 1px solid var(--border); color: var(--muted); vertical-align: top; background: var(--surface); }}
+  .markdown-body tr:nth-child(even) td {{ background: var(--surface2); }}
   .markdown-body tr:last-child td {{ border-bottom: none; }}
 
   footer {{
@@ -680,8 +688,9 @@ def build_dashboard_html() -> str:
     font-size: 12px;
     border-top: 1px solid var(--border);
     margin-top: 20px;
+    background: var(--surface);
   }}
-  footer a {{ color: var(--gold); text-decoration: none; }}
+  footer a {{ color: var(--blue); text-decoration: none; }}
 </style>
 </head>
 <body>
@@ -695,7 +704,7 @@ def build_dashboard_html() -> str:
 <nav class="sections">
   <a href="#about">About</a>
   <a href="#tools">Tools</a>
-  <a href="#investments">Investments</a>
+  <a href="#assets">Assets</a>
   <a href="#resources">Resources</a>
 </nav>
 
@@ -710,7 +719,7 @@ def build_dashboard_html() -> str:
       to get <strong>real numbers</strong> from the Tontinator calculator and <strong>accurate context</strong>
       about how Tontine Trust works.<br><br>
       <strong>What does this server expose?</strong> <strong>{n_tools} tools</strong> (for calculations and information retrieval),
-      <strong>{n_inv} investment options</strong>, and <strong>{n_resources} educational resources</strong> — markdown documents
+      <strong>{n_inv} asset types</strong>, and <strong>{n_resources} educational resources</strong> — markdown documents
       the AI reads to answer questions accurately. All calculation data is powered live by
       <strong>api.mytontine.com</strong>.
     </div>
@@ -721,8 +730,8 @@ def build_dashboard_html() -> str:
     {tool_cards}
   </section>
 
-  <section id="investments">
-    <h2>Investment Options ({n_inv})</h2>
+  <section id="assets">
+    <h2>Asset Types ({n_inv})</h2>
     {inv_cards}
   </section>
 

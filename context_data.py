@@ -1,6 +1,6 @@
-"""Tontine MCP — educational content and investment type definitions."""
+"""Tontine MCP — educational content and asset type definitions."""
 
-INVESTMENT_TYPE_DESCRIPTIONS = {
+ASSET_TYPE_DESCRIPTIONS = {
     "XAU5Y": {
         "label": "Gold Extra",
         "risk": "Aggressive",
@@ -76,7 +76,7 @@ The longer you live, the more you receive. You cannot outlive your money.
 
 ## Three stages of membership
 
-1. **Form your trust online** — takes about 15 minutes. Choose your contribution, investment type,
+1. **Form your trust online** — takes about 15 minutes. Choose your contribution amount, asset type,
    and the age at which you want payouts to begin.
 2. **The Tontine begins** — your trust joins its age/sex-matched class. Every month you receive
    income; every month survivors inherit mortality credits from those who have passed.
@@ -135,13 +135,13 @@ and for the right person the difference in lifetime income can be dramatic.
 | Feature | Tontine Trust | Traditional Annuity |
 |---|---|---|
 | Monthly payout trend | **Grows over time** (mortality credits) | Fixed or marginally adjusted |
-| Payout driver | Investment returns + mortality credits from deceased members | Insurance company pricing |
+| Payout driver | Asset returns + mortality credits from deceased members | Insurance company pricing |
 | Death benefit | None — balance stays in the pool for survivors | Often yes (at added premium cost) |
 | Counterparty risk | Pool of members + trust structure | Insurance company solvency |
 | Longevity bonus | **Yes — the longer you live, the more you receive** | No |
 | Contribution limit | **Unlimited** | Typically capped at ~$200,000 |
 | Annual fee | **1% flat, no hidden charges** | Often 2–3%+ with commissions |
-| Inflation protection | Partial (via gold/BTC investment growth) | Very limited |
+| Inflation protection | Partial (via gold/BTC asset growth) | Very limited |
 | Setup | Online in ~15 minutes | Often weeks of paperwork |
 | Best for | Longevity protection, maximising lifetime income | Predictability, legacy planning |
 
@@ -195,23 +195,23 @@ it is a mathematically predictable sharing of longevity risk.
 ## Nightly micro-adjustments
 
 Tontine Trust's platform performs **nightly micro-adjustments** of each member's payments,
-based on actual death rates and actual investment performance. This is what the FAQs describe
+based on actual death rates and actual asset performance. This is what the FAQs describe
 as "the hallmark of the safest pension funds in the world." Payouts adjust continuously to
 reflect reality, not fixed actuarial assumptions made decades ago.
 
 ## The payout formula (simplified)
 
-Monthly payout ≈ member balance × (mortality_force + monthly_investment_return)
+Monthly payout ≈ member balance × (mortality_force + monthly_asset_return)
 
 - **mortality_force**: the probability of dying this month given age, sex, and country.
   This increases every year as you age — which is why payouts grow.
-- **monthly_investment_return**: returns from the underlying trust assets (gold, Bitcoin, etc.)
+- **monthly_asset_return**: returns from the underlying trust assets (gold, Bitcoin, etc.)
 
 ## Why payouts compound upward
 
 As you age, three forces combine:
 1. **Mortality force increases** — more classmates pass each month, sending larger credits to survivors.
-2. **Your balance has grown** — years of investment returns have compounded your trust value.
+2. **Your balance has grown** — years of asset returns have compounded your trust value.
 3. **Fewer survivors share the credits** — your proportional share of incoming mortality credits grows.
 
 These three effects stack. A tontine payout at age 85 can easily be 2–3× what it was at age 75,
@@ -222,7 +222,7 @@ while an annuity payment stays flat.
 Unlike a defined-benefit pension or insurance annuity, a Tontine Trust cannot become insolvent.
 Payouts are always a function of what is actually in the pool — they adjust to match reality.
 "You can be sure that the money will never run out" because the mechanism is self-correcting:
-if members live longer than expected, payouts adjust downward; if investment returns are strong,
+if members live longer than expected, payouts adjust downward; if asset returns are strong,
 they adjust upward.
 
 ## Inflation-adjusted view
@@ -235,7 +235,7 @@ a 20-year retirement.
     },
     "tontine://distribution-profiles": {
         "name": "Flexible Distribution Profiles",
-        "description": "The three investment/distribution profiles available on Tontine Trust: Gold Extra, Gold Standard, Gold Reserve — trade-offs and how to choose",
+        "description": "The three asset/distribution profiles available on Tontine Trust: Gold Extra, Gold Standard, Gold Reserve — trade-offs and how to choose",
         "mimeType": "text/markdown",
         "content": """\
 # Flexible Distribution Profiles
@@ -282,7 +282,7 @@ Uses the **past 20 years** of gold CAGR (the most conservative assumption).
   actual asset performance and member mortality.
 - Historical CAGR data is provided for educational purposes only and does not constitute
   a forecast or guarantee of future performance.
-- The investment type affects only the **accumulation phase** (before payouts start).
+- The asset type affects only the **accumulation phase** (before payouts start).
   The tontine mortality credit mechanism operates the same way regardless of which
   profile you choose.
 
@@ -311,7 +311,7 @@ company's balance sheet.
 
 ## Your money is in your own trust
 
-When you contribute to Tontine Trust, your assets are deposited into an **individual irrevocable
+When you contribute to Tontine Trust, your assets are placed into an **individual irrevocable
 trust** — a separate legal entity that only you can benefit from during your lifetime.
 This creates a clean **legal separation between Trust Property and the personal assets of
 the member**, as well as between your trust and Tontine Trust's corporate assets.
@@ -361,7 +361,7 @@ best suited for long-term savings you do not expect to need as a lump sum.
 ## The Trustee's role
 
 The Trustee acts in a **fiduciary and administrative capacity only**. They do not provide
-financial advice or make investment recommendations. Their role is to administer the trust
+financial advice or make allocation recommendations. Their role is to administer the trust
 faithfully according to the Trust Agreement and applicable law — putting member interests first.
 """,
     },
@@ -372,7 +372,7 @@ TOOLS_METADATA = [
         "name": "get_tontine_info",
         "description": (
             "Get background information about Tontine Trust: what it is, how it compares to annuities, "
-            "how mortality credits work, the available investment/distribution profiles, and how "
+            "how mortality credits work, the available asset/distribution profiles, and how "
             "member assets are protected."
         ),
         "params": "topic: overview | vs_annuity | mortality_credits | distribution_profiles | trust_security | all",
@@ -384,21 +384,21 @@ TOOLS_METADATA = [
             "amounts for a tontine vs an annuity at key age milestones (+0, +5, +10, +15, +20 years "
             "from payout start). Includes a 'key insight' note on payout growth and annuity comparison."
         ),
-        "params": "current_age_years, country (ISO 3166-1 alpha-3), sex, onetime_amount, payout_age_years, investment_type",
+        "params": "current_age_years, country (ISO 3166-1 alpha-3), sex, onetime_amount, payout_age_years, asset_type",
     },
     {
         "name": "compare_tontine_scenarios",
         "description": (
             "Compare 2–4 tontine scenarios side-by-side. Useful for 'retire at 70 vs 80', "
-            "'$300k vs $500k', or comparing investment types. Runs all scenarios in parallel."
+            "'$300k vs $500k', or comparing asset types. Runs all scenarios in parallel."
         ),
         "params": "scenarios[]: array of calculation requests, each with a label",
     },
     {
-        "name": "get_investment_types",
+        "name": "get_asset_types",
         "description": (
-            "List all available investment allocation types with descriptions. "
-            "Call this when the user asks about investment options before recommending one."
+            "List all available asset allocation types with descriptions. "
+            "Call this when the user asks about asset options before recommending one."
         ),
         "params": "(none)",
     },
