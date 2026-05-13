@@ -760,6 +760,7 @@ def build_dashboard_html() -> str:
   Tontine Trust MCP Server &mdash;
   <a href="https://tontine.com" target="_blank">tontine.com</a> &mdash;
   API: <a href="https://api.mytontine.com" target="_blank">api.mytontine.com</a>
+  &mdash; <a href="/editor">Content Editor</a>
 </footer>
 
 <script>
@@ -768,6 +769,318 @@ function showTab(event, slug) {{
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
   document.getElementById('tab_' + slug).style.display = 'block';
   event.target.classList.add('active');
+}}
+</script>
+
+</body>
+</html>"""
+
+
+# ---------------------------------------------------------------------------
+# Content Editor HTML (standalone, no server needed when downloaded)
+# ---------------------------------------------------------------------------
+
+def build_editor_html() -> str:
+    import json as _json
+
+    content_snapshot = _json.dumps(
+        {"resources": RESOURCES, "asset_types": ASSET_TYPE_DESCRIPTIONS},
+        ensure_ascii=False,
+    )
+
+    resource_sections = ""
+    for uri, meta in RESOURCES.items():
+        code = uri.replace("tontine://", "")
+        resource_sections += f"""
+    <div class="section">
+      <div class="section-label">Resource: {html.escape(meta['name'])}</div>
+      <div class="field-group">
+        <label>Title</label>
+        <input type="text" data-section="resource" data-code="{html.escape(code)}" data-field="name"
+               value="{html.escape(meta['name'], quote=True)}">
+      </div>
+      <div class="field-group">
+        <label>Short description <span class="hint">(one line summary)</span></label>
+        <input type="text" data-section="resource" data-code="{html.escape(code)}" data-field="description"
+               value="{html.escape(meta['description'], quote=True)}">
+      </div>
+      <div class="field-group">
+        <label>Full content <span class="hint">(this is what the AI reads word for word)</span></label>
+        <textarea data-section="resource" data-code="{html.escape(code)}" data-field="content" rows="22">{html.escape(meta['content'])}</textarea>
+      </div>
+    </div>"""
+
+    asset_sections = ""
+    for code, meta in ASSET_TYPE_DESCRIPTIONS.items():
+        asset_sections += f"""
+    <div class="section">
+      <div class="section-label">Asset: {html.escape(code)} — {html.escape(meta['label'])}</div>
+      <div class="field-group">
+        <label>Display name</label>
+        <input type="text" data-section="asset" data-code="{html.escape(code)}" data-field="label"
+               value="{html.escape(meta['label'], quote=True)}">
+      </div>
+      <div class="field-group">
+        <label>Risk level label</label>
+        <input type="text" data-section="asset" data-code="{html.escape(code)}" data-field="risk"
+               value="{html.escape(meta['risk'], quote=True)}">
+      </div>
+      <div class="field-group">
+        <label>Description <span class="hint">(shown to the AI and in the dashboard)</span></label>
+        <textarea data-section="asset" data-code="{html.escape(code)}" data-field="description" rows="4">{html.escape(meta['description'])}</textarea>
+      </div>
+    </div>"""
+
+    return f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tontine Trust — Content Review</title>
+<style>
+  :root {{
+    --blue: #1a6fc4;
+    --blue-dark: #154f8e;
+    --blue-light: #e8f1fb;
+    --bg: #f5f7fa;
+    --surface: #ffffff;
+    --border: #d8e3ef;
+    --text: #1a2332;
+    --muted: #5a6e85;
+    --green: #1a7a4a;
+    --green-light: #e6f4ed;
+    --radius: 8px;
+  }}
+  * {{ box-sizing: border-box; margin: 0; padding: 0; }}
+  body {{ background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-size: 15px; line-height: 1.6; }}
+
+  header {{
+    background: var(--blue);
+    padding: 20px 40px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+  }}
+  .logo {{ font-size: 22px; font-weight: 700; color: #fff; }}
+  .logo span {{ font-weight: 300; opacity: 0.85; }}
+  .header-tag {{ background: #fff; color: var(--blue); font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; padding: 3px 9px; border-radius: 4px; }}
+  .save-btn-header {{
+    margin-left: auto;
+    background: #fff;
+    color: var(--blue);
+    border: none;
+    padding: 9px 22px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.15s;
+  }}
+  .save-btn-header:hover {{ background: var(--blue-light); }}
+
+  .intro {{
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 28px 40px;
+  }}
+  .intro h2 {{ font-size: 18px; color: var(--blue); margin-bottom: 14px; }}
+  .steps {{ list-style: none; counter-reset: step; display: flex; flex-direction: column; gap: 10px; }}
+  .steps li {{ counter-increment: step; display: flex; align-items: flex-start; gap: 12px; font-size: 14px; color: var(--muted); }}
+  .steps li::before {{
+    content: counter(step);
+    background: var(--blue);
+    color: #fff;
+    font-size: 12px;
+    font-weight: 700;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }}
+  .steps li strong {{ color: var(--text); }}
+
+  main {{ max-width: 900px; margin: 0 auto; padding: 32px 40px 60px; }}
+
+  h2.chapter {{
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--blue);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin: 40px 0 16px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid var(--blue-light);
+  }}
+
+  .section {{
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px 28px;
+    margin-bottom: 20px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  }}
+  .section-label {{
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--blue-dark);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 18px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+  }}
+  .field-group {{ margin-bottom: 16px; }}
+  .field-group:last-child {{ margin-bottom: 0; }}
+  label {{
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 6px;
+  }}
+  .hint {{ font-weight: 400; color: var(--muted); font-size: 12px; }}
+  input[type="text"] {{
+    width: 100%;
+    padding: 9px 12px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 14px;
+    color: var(--text);
+    background: var(--bg);
+    font-family: inherit;
+    transition: border-color 0.15s;
+  }}
+  input[type="text"]:focus {{ outline: none; border-color: var(--blue); background: #fff; }}
+  textarea {{
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 13px;
+    color: var(--text);
+    background: var(--bg);
+    font-family: "SF Mono", "Fira Code", monospace;
+    line-height: 1.55;
+    resize: vertical;
+    transition: border-color 0.15s;
+  }}
+  textarea:focus {{ outline: none; border-color: var(--blue); background: #fff; }}
+
+  .save-section {{
+    background: var(--green-light);
+    border: 2px solid var(--green);
+    border-radius: var(--radius);
+    padding: 24px 28px;
+    margin-top: 40px;
+    text-align: center;
+  }}
+  .save-section p {{ color: var(--muted); font-size: 14px; margin-bottom: 16px; }}
+  .save-btn-big {{
+    background: var(--green);
+    color: #fff;
+    border: none;
+    padding: 14px 40px;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    letter-spacing: 0.2px;
+    transition: background 0.15s;
+  }}
+  .save-btn-big:hover {{ background: #145c38; }}
+
+  .saved-msg {{
+    display: none;
+    margin-top: 14px;
+    color: var(--green);
+    font-weight: 600;
+    font-size: 14px;
+  }}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Tontine<span>Trust</span></div>
+  <span class="header-tag">Content Review</span>
+  <button class="save-btn-header" onclick="saveChanges()">&#8595; Save My Changes</button>
+</header>
+
+<div class="intro">
+  <h2>How to use this file</h2>
+  <ol class="steps">
+    <li><strong>Read through the content below.</strong> These are the exact texts the AI uses to answer questions about Tontine Trust.</li>
+    <li><strong>Click on any field to edit it.</strong> White boxes are short labels. The larger grey boxes contain the full text the AI reads.</li>
+    <li><strong>When you are done, click "Save My Changes"</strong> — either the button at the top right or the large green button at the bottom. A new file will be saved to your Downloads folder.</li>
+    <li><strong>Send the downloaded file back</strong> to your developer. They will apply the changes with one command.</li>
+  </ol>
+</div>
+
+<main>
+
+  <h2 class="chapter">Educational Resources (what the AI reads)</h2>
+  {resource_sections}
+
+  <h2 class="chapter">Asset Types</h2>
+  {asset_sections}
+
+  <div class="save-section">
+    <p>When you are happy with your edits, click below. A file will be downloaded to your computer — send it to your developer.</p>
+    <button class="save-btn-big" onclick="saveChanges()">&#128190; Save My Changes</button>
+    <div class="saved-msg" id="saved-msg">&#10003; File downloaded! Send it to your developer.</div>
+  </div>
+
+</main>
+
+<script id="content-data" type="application/json">
+{content_snapshot}
+</script>
+
+<script>
+function saveChanges() {{
+  const data = {{ resources: {{}}, asset_types: {{}} }};
+
+  document.querySelectorAll('[data-section]').forEach(el => {{
+    const section = el.dataset.section;
+    const code = el.dataset.code;
+    const field = el.dataset.field;
+    const value = el.value;
+
+    if (section === 'resource') {{
+      if (!data.resources[code]) data.resources[code] = {{}};
+      data.resources[code][field] = value;
+    }} else if (section === 'asset') {{
+      if (!data.asset_types[code]) data.asset_types[code] = {{}};
+      data.asset_types[code][field] = value;
+    }}
+  }});
+
+  const scriptTag = document.getElementById('content-data');
+  scriptTag.textContent = JSON.stringify(data, null, 2);
+
+  const now = new Date();
+  const ts = now.toISOString().slice(0, 10);
+  const html = '<!DOCTYPE html>' + document.documentElement.outerHTML;
+
+  const blob = new Blob([html], {{ type: 'text/html;charset=utf-8' }});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'tontine_content_' + ts + '.html';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(a.href);
+
+  document.getElementById('saved-msg').style.display = 'block';
 }}
 </script>
 
@@ -797,6 +1110,15 @@ def run_http(port: int):
     async def handle_dashboard(_request: Request):
         return HTMLResponse(build_dashboard_html())
 
+    async def handle_editor(_request: Request):
+        from starlette.responses import Response
+        filename = "tontine_content_editor.html"
+        return Response(
+            content=build_editor_html(),
+            media_type="text/html",
+            headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+        )
+
     async def handle_sse(request: Request):
         async with sse.connect_sse(request.scope, request.receive, request._send) as (r, w):
             await app.run(r, w, app.create_initialization_options())
@@ -806,12 +1128,14 @@ def run_http(port: int):
 
     starlette_app = Starlette(routes=[
         Route("/", endpoint=handle_dashboard),
+        Route("/editor", endpoint=handle_editor),
         Route("/sse", endpoint=handle_sse),
         Route("/messages/", endpoint=handle_messages, methods=["POST"]),
     ])
 
     print(f"Tontine MCP server running on http://0.0.0.0:{port}")
     print(f"Dashboard:    http://localhost:{port}/")
+    print(f"Editor:       http://localhost:{port}/editor")
     print(f"SSE endpoint: http://0.0.0.0:{port}/sse")
     uvicorn.run(starlette_app, host="0.0.0.0", port=port)
 
