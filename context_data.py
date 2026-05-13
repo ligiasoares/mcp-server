@@ -384,7 +384,7 @@ TOOLS_METADATA = [
             "amounts for a tontine vs an annuity at key age milestones (+0, +5, +10, +15, +20 years "
             "from payout start). Includes a 'key insight' note on payout growth and annuity comparison."
         ),
-        "params": "current_age_years, country (ISO 3166-1 alpha-3), sex, onetime_amount, payout_age_years, asset_type",
+        "params": "current_age_years, country (ISO 3166-1 alpha-3), sex, onetime_amount, monthly_amount (optional), payout_age_years, asset_type",
     },
     {
         "name": "compare_tontine_scenarios",
