@@ -1,0 +1,14 @@
+target-version = "py312"
+line-length = 120
+
+[lint]
+select = [
+  "E",   # pycodestyle — PEP 8 style errors
+  "F",   # pyflakes — undefined names, unused imports, unused variables
+  "I",   # isort — import ordering
+  "UP",  # pyupgrade — use modern Python syntax where available
+]
+
+[lint.per-file-ignores]
+# views.py contains long inline HTML/CSS strings — line-length is not meaningful there.
+"views.py" = ["E501"]
