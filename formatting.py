@@ -5,6 +5,8 @@ from context_data import ASSET_TYPE_DESCRIPTIONS
 # Age milestones shown in payout tables: payout start age, then +5, +10, +15, +20 years.
 MILESTONE_OFFSETS = [0, 5, 10, 15, 20]
 
+_SEP = "=" * 56  # separator line used in result blocks
+
 
 def extract_milestones(payouts: list[dict], payout_age_years: int) -> list[dict]:
     """Return one payout entry per milestone age, starting from payout_age_years."""
@@ -45,12 +47,12 @@ def format_single_result(results: dict, asset_type: str, label: str = "") -> str
     asset_meta = ASSET_TYPE_DESCRIPTIONS.get(asset_type, {})
     asset_label = asset_meta.get("label", asset_type) if isinstance(asset_meta, dict) else asset_type
 
-    header = f"{'=' * 56}\n"
+    header = f"{_SEP}\n"
     header += (
         "NOTE: Figures are currency-agnostic (100,000 contributed is 100,000\n"
         "regardless of local currency) and are illustrative projections —\n"
         "present to the user as approximate ranges, not guaranteed amounts.\n"
-        f"{'=' * 56}\n"
+        f"{_SEP}\n"
     )
     if label:
         header += f"Scenario: {label}\n"
@@ -59,7 +61,7 @@ def format_single_result(results: dict, asset_type: str, label: str = "") -> str
         f"Total contributed: {fmt_amount(total_contributions)}\n"
         f"Inflation rate   : {annual_inflation * 100:.1f}% per year\n"
         f"Payouts start at age {payout_age_years}\n"
-        f"{'=' * 56}\n"
+        f"{_SEP}\n"
     )
 
     table_header = f"\n{'Age':<5}  {'Tontine/mo':>12}  {'Infl.adj':>12}  {'Annuity/mo':>12}\n"

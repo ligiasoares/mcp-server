@@ -27,6 +27,14 @@ from formatting import format_comparison, format_single_result
 
 DEFAULT_ASSET_TYPE = "XAU10Y"
 
+# Maps topic slug → resource URI for the get_tontine_info tool.
+# Auto-derived from RESOURCES so adding a resource to content.json requires no code change.
+# Example: "tontine://what-is-a-tontine" → key "what_is_a_tontine"
+TOPIC_TO_URI: dict[str, str] = {
+    uri.replace("tontine://", "").replace("-", "_"): uri
+    for uri in RESOURCES
+}
+
 app = Server("tontine-mcp")
 
 
@@ -234,13 +242,19 @@ async def list_tools() -> list[types.Tool]:
 # Tool handlers — one branch per tool name
 # ---------------------------------------------------------------------------
 
-# Auto-derived from RESOURCES (loaded from content.json).
-# URI slugs become topic keys: "tontine://what-is-a-tontine" → "what_is_a_tontine".
-# Adding a resource to content.json automatically makes it available here — no manual update needed.
-TOPIC_TO_URI: dict[str, str] = {
-    uri.replace("tontine://", "").replace("-", "_"): uri
-    for uri in RESOURCES
-}
+def _payload_from_args(args: dict) -> dict:
+    """Extract build_payload arguments from a tool arguments dict or scenario dict."""
+    return build_payload(
+        current_age_years=args["current_age_years"],
+        current_age_months=args.get("current_age_months", 0),
+        country=args["country"],
+        sex=args.get("sex"),
+        onetime_amount=args.get("onetime_amount"),
+        monthly_amount=args.get("monthly_amount"),
+        payout_age_years=args["payout_age_years"],
+        payout_age_months=args.get("payout_age_months", 0),
+        asset_type=args.get("asset_type", DEFAULT_ASSET_TYPE),
+    )
 
 
 @app.call_tool()
@@ -273,20 +287,7 @@ async def call_tool(name: str, arguments: dict) -> list[types.TextContent]:
     if name == "calculate_tontine_payout":
         asset_type = arguments.get("asset_type", DEFAULT_ASSET_TYPE)
         async with httpx.AsyncClient() as client:
-            result = await call_tontinator(
-                build_payload(
-                    current_age_years=arguments["current_age_years"],
-                    current_age_months=arguments.get("current_age_months", 0),
-                    country=arguments["country"],
-                    sex=arguments.get("sex"),
-                    onetime_amount=arguments.get("onetime_amount"),
-                    monthly_amount=arguments.get("monthly_amount"),
-                    payout_age_years=arguments["payout_age_years"],
-                    payout_age_months=arguments.get("payout_age_months", 0),
-                    asset_type=asset_type,
-                ),
-                client,
-            )
+            result = await call_tontinator(_payload_from_args(arguments), client)
         if isinstance(result, str):
             return text_response(result)
         return text_response(format_single_result(result, asset_type=asset_type))
@@ -295,20 +296,7 @@ async def call_tool(name: str, arguments: dict) -> list[types.TextContent]:
         scenarios = arguments["scenarios"]
         async with httpx.AsyncClient() as client:
             raw_results = await asyncio.gather(*[
-                call_tontinator(
-                    build_payload(
-                        current_age_years=sc["current_age_years"],
-                        current_age_months=sc.get("current_age_months", 0),
-                        country=sc["country"],
-                        sex=sc.get("sex"),
-                        onetime_amount=sc.get("onetime_amount"),
-                        monthly_amount=sc.get("monthly_amount"),
-                        payout_age_years=sc["payout_age_years"],
-                        payout_age_months=sc.get("payout_age_months", 0),
-                        asset_type=sc.get("asset_type", DEFAULT_ASSET_TYPE),
-                    ),
-                    client,
-                )
+                call_tontinator(_payload_from_args(sc), client)
                 for sc in scenarios
             ])
         results_list = [

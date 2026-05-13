@@ -9,6 +9,9 @@ _content = json.loads(_content_path.read_text(encoding="utf-8"))
 RESOURCES: dict = _content["resources"]
 ASSET_TYPE_DESCRIPTIONS: dict = _content["asset_types"]
 
+# TOOLS_METADATA is used exclusively by views.py to render the dashboard HTML.
+# It is NOT the source of truth for the MCP protocol — that lives in server.py (list_tools).
+# Keep descriptions here roughly in sync with server.py, but they don't need to be identical.
 TOOLS_METADATA = [
     {
         "name": "get_tontine_info",
@@ -17,7 +20,7 @@ TOOLS_METADATA = [
             "how mortality credits work, the available asset/distribution profiles, and how "
             "member assets are protected."
         ),
-        "params": "topic: overview | vs_annuity | mortality_credits | distribution_profiles | trust_security | all",
+        "params": "topic: <resource-slug> | all  (slugs are derived from content.json resource keys)",
     },
     {
         "name": "calculate_tontine_payout",
